@@ -1,0 +1,4 @@
+inet-dist-tls.config
+*.beam
+*.bin
+erl_crash.dump
