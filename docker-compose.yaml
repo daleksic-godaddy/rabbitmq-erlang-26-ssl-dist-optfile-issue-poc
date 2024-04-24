@@ -7,8 +7,6 @@ services:
         ERLANG_VERSION: 1:25.3.2.11-1
     container_name: rabbitmq312-erlang25
     hostname: rabbitmq.mydomain.com
-    environment:
-      ERL_SSL_PATH: /usr/lib/erlang/lib/ssl-10.9.1.3/ebin
     ports:
       - "2572:5672"
       - "2571:5671"
@@ -16,14 +14,17 @@ services:
       - "25172:15672"
       - "25272:25672"
     volumes: &rabbitmq_volumes
+      - ./docker/config/00-rabbitmq-sudo:/etc/sudoers.d/00-rabbitmq-sudo:ro
       - ./docker/config/advanced.config:/etc/rabbitmq/advanced.config:ro
       - ./docker/config/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro
       - ./docker/config/rabbitmq-env.conf:/etc/rabbitmq/rabbitmq-env.conf:ro
       - ./docker/config/inter_node_tls.config:/etc/rabbitmq/inter_node_tls.config:ro
       - ./docker/config/management_definitions.json:/etc/rabbitmq/management_definitions.json:ro
-      - ./tls-gen/basic/result/server_rabbitmq.mydomain.local_certificate.pem:/etc/rabbitmq/tls/rabbitmq.crt:ro
-      - ./tls-gen/basic/result/server_rabbitmq.mydomain.local_key.pem:/etc/rabbitmq/tls/rabbitmq.key:ro
-      - ./tls-gen/basic/result/ca_certificate.pem:/etc/rabbitmq/tls/rabbitmq.ca:ro
+      - ./tls-gen/basic/result/server_rabbitmq.mydomain.local_certificate.pem:/etc/rabbitmq/tls/server_rabbitmq.pem:ro
+      - ./tls-gen/basic/result/server_rabbitmq.mydomain.local_key.pem:/etc/rabbitmq/tls/server_rabbitmq.key:ro
+      - ./tls-gen/basic/result/client_rabbitmq.mydomain.local_certificate.pem:/etc/rabbitmq/tls/client_rabbitmq.pem:ro
+      - ./tls-gen/basic/result/client_rabbitmq.mydomain.local_key.pem:/etc/rabbitmq/tls/client_rabbitmq.key:ro
+      - ./tls-gen/basic/result/ca_certificate.pem:/etc/rabbitmq/tls/ca_certificate.pem:ro
 
   rabbitmq312-erlang26:
     build:
@@ -33,8 +34,6 @@ services:
         ERLANG_VERSION: 1:26.2.4-1
     container_name: rabbitmq312-erlang26
     hostname: rabbitmq.mydomain.com
-    environment:
-      ERL_SSL_PATH: /usr/lib/erlang/lib/ssl-11.1.3/ebin
     ports:
       - "2672:5672"
       - "2671:5671"
@@ -51,8 +50,6 @@ services:
         ERLANG_VERSION: 1:26.2.4-1
     container_name: rabbitmq313-erlang26
     hostname: rabbitmq.mydomain.com
-    environment:
-      ERL_SSL_PATH: /usr/lib/erlang/lib/ssl-11.1.3/ebin
     ports:
       - "3672:5672"
       - "3671:5671"

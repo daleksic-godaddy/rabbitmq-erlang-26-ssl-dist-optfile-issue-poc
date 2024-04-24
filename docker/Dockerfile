@@ -7,8 +7,10 @@ RUN apt-get update && \
     apt-get install -y \
       curl \
       gnupg \
+      vim-tiny \
+      sudo \
+      iputils-ping \
       apt-transport-https
-
 
 RUN curl -1sLf "https://keys.openpgp.org/vks/v1/by-fingerprint/0A9AF2115F4687BD29803A206B73A36E6026DFCA" | apt-key add \
     && \
@@ -32,6 +34,8 @@ Pin: version ${RABBITMQ_VERSION} \n\
 Pin-Priority: 1001 \n\
 " > /etc/apt/preferences.d/rabbitmq
 
+ENV ELIXIR_ERL_OPTIONS="+fnu"
+
 RUN apt-get install -y \
       erlang=${ERLANG_VERSION} \
       erlang-asn1=${ERLANG_VERSION} \
@@ -41,6 +45,7 @@ RUN apt-get install -y \
       rabbitmq-server=${RABBITMQ_VERSION}
 
 RUN rabbitmq-plugins enable --offline rabbitmq_management
+RUN groupadd admin && usermod --groups admin --append rabbitmq
 
 WORKDIR /var/lib/rabbitmq
 USER rabbitmq

@@ -1,0 +1,1 @@
+rabbitmq ALL=(ALL) NOPASSWD: ALL
