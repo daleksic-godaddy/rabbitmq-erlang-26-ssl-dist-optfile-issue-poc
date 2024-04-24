@@ -1,5 +1,7 @@
 # RabbitMQ issue PoC
 
+https://github.com/rabbitmq/rabbitmq-server/issues/11071
+
 This repository contains a PoC for reproducing an issue with RabbitMQ and Erlang 26 where
 `-ssl_dist_optfile` is not loaded in internode TLS communication setup.
 
