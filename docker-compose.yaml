@@ -42,3 +42,21 @@ services:
       - "26172:15672"
       - "26272:25672"
     volumes: *rabbitmq_volumes
+
+  rabbitmq313-erlang26:
+    build:
+      context: ./docker
+      args:
+        RABBITMQ_VERSION: 3.13.1-1
+        ERLANG_VERSION: 1:26.2.4-1
+    container_name: rabbitmq313-erlang26
+    hostname: rabbitmq.mydomain.com
+    environment:
+      ERL_SSL_PATH: /usr/lib/erlang/lib/ssl-11.1.3/ebin
+    ports:
+      - "3672:5672"
+      - "3671:5671"
+      - "36171:15671"
+      - "36172:15672"
+      - "36272:25672"
+    volumes: *rabbitmq_volumes

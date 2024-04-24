@@ -17,13 +17,17 @@ start:
 start_recreated:
 	docker-compose up --build --force-recreate
 
-.PHONY: test_erlang25
+.PHONY: test_erlang25_rmq312
 test_erlang25:
 	openssl s_client -connect localhost:25272 || true
 
-.PHONY: test_erlang26
+.PHONY: test_erlang26_rmq312
 test_erlang26:
 	openssl s_client -connect localhost:26272 || true
+
+.PHONY: test_erlang26_rmq313
+test_erlang26:
+	openssl s_client -connect localhost:36272 || true
 
 .PHONY: clean
 clean:
