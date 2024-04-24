@@ -11,11 +11,11 @@ setup:
 
 .PHONY: start
 start:
-	docker-compose up --build
+	docker compose up --build
 
 .PHONY: start_recreated
 start_recreated:
-	docker-compose up --build --force-recreate
+	docker compose up --build --force-recreate
 
 .PHONY: test_erlang25_rmq312
 test_erlang25:
@@ -31,4 +31,5 @@ test_erlang26:
 
 .PHONY: clean
 clean:
+	docker compose down
 	cd tls_gen && git clean -xfd
