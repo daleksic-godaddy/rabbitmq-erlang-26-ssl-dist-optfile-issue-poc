@@ -159,7 +159,7 @@ Results in connection where SSL certificate is not served by RabbitMQ
 
 ```
 ❯ make test_erlang26_rmq313
-openssl s_client -connect localhost:26272 || true
+openssl s_client -connect localhost:36272 || true
 Connecting to 127.0.0.1
 CONNECTED(00000005)
 00B63D0601000000:error:0A000126:SSL routines::unexpected eof while reading:ssl/record/rec_layer_s3.c:650:
