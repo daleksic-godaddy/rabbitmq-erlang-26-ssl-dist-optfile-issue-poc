@@ -1,0 +1,179 @@
+- name: Provision
+  hosts: all
+  become: true
+  pre_tasks:
+    - name: Assert input vars
+      assert:
+        that:
+          - erlang_version is defined
+          - rabbitmq_version is defined
+          - desired_fqdn_hostname is defined
+          - config_variant is defined
+          - >-
+            config_variant in [
+              'cert_both_customize',
+              'cert_client_only_customize',
+              'cert_none_customize',
+              'wildcard_cert_both_customize',
+              'wildcard_cert_client_only_customize',
+              'wildcard_cert_none_customize',
+            ]
+
+    - name: Ensure fqdn hostname
+      hostname:
+        name: '{{ desired_fqdn_hostname }}'
+
+  tasks:
+    - name: Install requirements
+      apt:
+        name:
+          - curl
+          - gnupg
+          - apt-transport-https
+        state: present
+
+    - name: Add repo keys
+      get_url:
+        url: '{{ item.url }}'
+        dest: '/etc/apt/trusted.gpg.d/{{ item.keyring_filename }}'
+      with_items:
+        - url: https://keys.openpgp.org/vks/v1/by-fingerprint/0A9AF2115F4687BD29803A206B73A36E6026DFCA
+          keyring_filename: rabbitmq.main.asc
+        - url: https://dl.cloudsmith.io/public/rabbitmq/rabbitmq-server/gpg.9F4587F226208342.key
+          keyring_filename: rabbitmq.9F4587F226208342.asc
+        - url: https://dl.cloudsmith.io/public/rabbitmq/rabbitmq-erlang/gpg.E495BB49CC4BBE5B.key
+          keyring_filename: rabbitmq.E495BB49CC4BBE5B.asc
+
+    - name: Add repositories
+      apt_repository:
+        repo: '{{ item.repo }}'
+        update_cache: true
+        state: present
+      with_items:
+        - repo: deb [signed-by=/etc/apt/trusted.gpg.d/rabbitmq.9F4587F226208342.asc] https://dl.cloudsmith.io/public/rabbitmq/rabbitmq-server/deb/ubuntu {{ ansible_distribution_release }} main
+        - repo: ppa:rabbitmq/rabbitmq-erlang-25
+        - repo: ppa:rabbitmq/rabbitmq-erlang
+
+    - name: Pin versions
+      copy:
+        content: |
+          Package: erlang*
+          Pin: version {{ erlang_version }}
+          Pin-Priority: 1001
+          
+          Package: rabbitmq-server
+          Pin: version {{ rabbitmq_version }}
+          Pin-Priority: 1001
+        dest: /etc/apt/preferences.d/rabbitmq
+
+    - name: Install rabbitmq & erlang
+      apt:
+        name:
+          - erlang={{ erlang_version }}
+          - erlang-asn1={{ erlang_version }}
+          - erlang-crypto={{ erlang_version }}
+          - erlang-public-key={{ erlang_version }}
+          - erlang-ssl={{ erlang_version }}
+          - rabbitmq-server={{ rabbitmq_version }}
+        state: present
+
+    - name: Enable rabbitmq plugins
+      rabbitmq_plugin:
+        names: rabbitmq_management
+        broker_state: offline
+        state: enabled
+      notify:
+        - rabbitmq.restart_server
+
+    - name: Fetch SSL lib path
+      command: erl -noinput -eval 'io:format("~s~n", [filename:dirname(code:which(inet_tls_dist))])' -s init stop
+      register: _rabbitmq_erl_ssl_path
+      check_mode: false
+      changed_when: false
+
+    - name: Write config
+      template:
+        dest: '{{ item.dest }}'
+        src: '{{ item.src }}'
+        owner: rabbitmq
+        group: rabbitmq
+      with_items:
+        - src: rabbitmq.conf
+          dest: /etc/rabbitmq/rabbitmq.conf
+        - src: rabbitmq-env.conf
+          dest: /etc/rabbitmq/rabbitmq-env.conf
+        - src: inter_node_tls.{{ config_variant }}.config
+          dest: /etc/rabbitmq/inter_node_tls.config
+        - src: management_definitions.json
+          dest: /etc/rabbitmq/management_definitions.json
+      loop_control:
+        label: "{{ item.dest }}"
+      diff: true
+      notify:
+        - rabbitmq.restart_server
+
+    - name: Ensure TLS certs dir
+      file:
+        path: /etc/rabbitmq/tls
+        state: directory
+        owner: rabbitmq
+        group: rabbitmq
+        mode: 0755
+
+    - name: Write certs
+      copy:
+        src: '{{ item.src }}'
+        dest: '/etc/rabbitmq/tls/{{ item.filename }}'
+        remote_src: true
+        owner: rabbitmq
+        group: rabbitmq
+        mode: '0640'
+      with_items:
+        # Server certs
+        - src: /vagrant/ansible/files/{{ desired_fqdn_hostname }}/server_certificate.pem
+          filename: rabbitmq_server.crt
+        - src: /vagrant/ansible/files/{{ desired_fqdn_hostname }}/server_key.pem
+          filename: rabbitmq_server.key
+        - src: /vagrant/ansible/files/{{ desired_fqdn_hostname }}/chained_ca_certificate.pem
+          filename: rabbitmq_server.ca
+
+        # Client certs
+        - src: /vagrant/ansible/files/{{ desired_fqdn_hostname }}/client_certificate.pem
+          filename: rabbitmq_client.crt
+        - src: /vagrant/ansible/files/{{ desired_fqdn_hostname }}/client_key.pem
+          filename: rabbitmq_client.key
+        - src: /vagrant/ansible/files/{{ desired_fqdn_hostname }}/chained_ca_certificate.pem
+          filename: rabbitmq_client.ca
+
+        # Wildcard server certs
+        - src: /vagrant/ansible/files/_.mydomain.local/server_certificate.pem
+          filename: rabbitmq_server_wildcard.crt
+        - src: /vagrant/ansible/files/_.mydomain.local/server_key.pem
+          filename: rabbitmq_server_wildcard.key
+        - src: /vagrant/ansible/files/_.mydomain.local/chained_ca_certificate.pem
+          filename: rabbitmq_server_wildcard.ca
+
+        # Wildcard client certs
+        - src: /vagrant/ansible/files/_.mydomain.local/client_certificate.pem
+          filename: rabbitmq_client_wildcard.crt
+        - src: /vagrant/ansible/files/_.mydomain.local/client_key.pem
+          filename: rabbitmq_client_wildcard.key
+        - src: /vagrant/ansible/files/_.mydomain.local/chained_ca_certificate.pem
+          filename: rabbitmq_client_wildcard.ca
+
+      loop_control:
+        label: "{{ item.filename }}"
+      notify:
+        - rabbitmq.restart_server
+
+    - meta: flush_handlers
+    - name: Ensure running
+      systemd:
+        name: rabbitmq-server
+        state: started
+
+  handlers:
+    - name: rabbitmq.restart_server
+      systemd:
+        name: rabbitmq-server
+        state: restarted

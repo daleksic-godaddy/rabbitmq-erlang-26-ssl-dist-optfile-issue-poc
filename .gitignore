@@ -2,3 +2,6 @@ inet-dist-tls.config
 *.beam
 *.bin
 erl_crash.dump
+.vagrant
+ansible/files/**/*.pem
+ansible/files/**/*.p12
